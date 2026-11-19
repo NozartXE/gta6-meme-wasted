@@ -14,7 +14,7 @@
 //   mkdir -p out && MAKEFUN_BOT_DIR=. MAKEFUN_OUTPUT_DIR=out node main.ts
 // Afterwards out/POST.json is byte for byte this directory's POST.json.
 
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const botDir = process.env.MAKEFUN_BOT_DIR ?? '/bot';
@@ -26,7 +26,10 @@ const target = join(outputDir, 'POST.json');
 mkdirSync(outputDir, { recursive: true });
 
 try {
-  writeFileSync(target, readFileSync(source));
+  // Write atomically: a reader never sees a half-written POST.json.
+  const staging = `${target}.tmp`;
+  writeFileSync(staging, readFileSync(source));
+  renameSync(staging, target);
 } catch (err) {
   console.error(`Could not copy POST.json from ${source}: ${(err as Error).message}`);
   process.exit(1);
